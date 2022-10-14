@@ -1,6 +1,7 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import argparse
 from os import path as osp
+from pathlib import Path
 
 from tools.data_converter import indoor_converter as indoor
 from tools.data_converter import kitti_converter as kitti
@@ -198,6 +199,39 @@ def waymo_data_prep(root_path,
         num_worker=workers).create()
 
 
+def carla_data_prep(root_path, out_dir, workers):
+    """Prepare the info file for Carla dataset.
+
+    Args:
+        root_path (str): Path of dataset root.
+        out_dir (str): Output directory of the generated info file.
+        workers (int): Number of threads to be used.
+    """
+    from tools.data_converter import carla_converter as carla
+    from tools.data_converter import carla_data_utils as carla_utils
+
+    root_path, out_dir = Path(root_path), Path(out_dir)
+
+    raw_data_path = root_path / "raw_data"
+    data_infos = carla_utils.load_raw_data_infos(raw_data_path)
+
+    converter = carla.CarlaConverter(
+        root_path, out_dir,
+        raw_data_infos=data_infos,
+        num_workers=workers,
+    )
+    converter.convert()
+
+    info_prefix = "carla"
+    create_groundtruth_database(
+        "CarlaDataset",
+        root_path,
+        info_prefix,
+        f'{out_dir}/{info_prefix}_infos_train.pkl',
+        with_mask=False,
+    )
+
+
 parser = argparse.ArgumentParser(description='Data converter arg parser')
 parser.add_argument('dataset', metavar='kitti', help='name of the dataset')
 parser.add_argument(
@@ -311,3 +345,9 @@ if __name__ == '__main__':
             num_points=args.num_points,
             out_dir=args.out_dir,
             workers=args.workers)
+    elif args.dataset == 'carla':
+        carla_data_prep(
+            root_path=args.root_path,
+            out_dir=args.out_dir,
+            workers=args.workers,
+        )
