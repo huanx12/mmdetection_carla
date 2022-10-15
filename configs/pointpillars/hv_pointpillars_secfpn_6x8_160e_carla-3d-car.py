@@ -1,11 +1,11 @@
 # model settings
 _base_ = [
-    '../_base_/models/hv_pointpillars_secfpn_kitti.py',
+    '../_base_/models/hv_pointpillars_secfpn_carla.py',
     '../_base_/datasets/carla-3d-car.py',
     '../_base_/schedules/cyclic_40e.py', '../_base_/default_runtime.py'
 ]
 
-point_cloud_range = [0, -39.68, -3, 69.12, 39.68, 1]
+point_cloud_range = [-63.68, -59.2, -2, 40, 59.2, 4]
 model = dict(
     bbox_head=dict(
         type="Anchor3DHead",
@@ -13,7 +13,7 @@ model = dict(
         anchor_generator=dict(
             _delete_=True,
             type="AlignedAnchor3DRangeGenerator",
-            ranges=[[0, -39.68, -1.78, 69.12, 39.68, -1.78]],
+            ranges=[[-63.68, -59.2, -0.0345, 40, 59.2, -0.0345]],
             sizes=[[3.9, 1.6, 1.56]],
             rotations=[0, 1.57],
             reshape_out=True,
