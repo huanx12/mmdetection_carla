@@ -4,6 +4,7 @@ from typing import List, Tuple
 
 import yaml
 import numpy as np
+from tqdm import tqdm
 from scipy.spatial.transform import Rotation as R
 
 
@@ -33,6 +34,7 @@ class Pose:
 
 @dataclass
 class LidarInfo:
+    index: int
     sensor_rot: np.ndarray
     sensor_trans: np.ndarray
     pc_path: str
@@ -67,7 +69,7 @@ class DataInfo:
 
 def load_raw_data_infos(data_path: Path) -> List[DataInfo]:
     data_infos = []
-    for anno_path in data_path.glob("*.yaml"):
+    for anno_path in tqdm(data_path.glob("*.yaml")):
         with open(anno_path, "r") as f:
             anno = yaml.load(f, yaml.SafeLoader)
 
@@ -83,6 +85,7 @@ def load_raw_data_infos(data_path: Path) -> List[DataInfo]:
 
                 lidar_infos.append(
                     LidarInfo(
+                        index=int(k[len("lidar"):-len("_pose")]),
                         sensor_rot=sensor_rot,
                         sensor_trans=sensor_trans,
                         pc_path=pc_path,
