@@ -1,6 +1,6 @@
 from pathlib import Path
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Set
 import pickle
 import random
 
@@ -20,11 +20,13 @@ class CarlaConverter:
         out_path: Path,
         raw_data_infos: List[DataInfo],
         num_workers: int,
+        lidar_idxs: Set[int],
     ):
         self.data_path = data_path
         self.out_path = out_path
         self.raw_data_infos = raw_data_infos
         self.num_workers = num_workers
+        self.lidar_idxs = lidar_idxs
 
     def convert(self):
         print('Start converting ...')
@@ -54,8 +56,11 @@ class CarlaConverter:
     def convert_one(self, raw_data_info: DataInfo):
         points_list = []
         for lidar_info in raw_data_info.lidars:
+            if lidar_info.index not in self.lidar_idxs:
+                continue
+
             pc = o3d.io.read_point_cloud(
-                str(self.data_path / "raw_data" / lidar_info.pc_path)
+                str(self.data_path / lidar_info.pc_path)
             )
             pc.rotate(lidar_info.sensor_rot)
             pc.translate(lidar_info.sensor_trans)
@@ -67,7 +72,8 @@ class CarlaConverter:
             )
 
         points = np.concatenate(points_list, axis=0)
-        points.tofile(self.data_path / "velodyne" / raw_data_info.scene_id)
+        points[:, 1] = -points[:, 1]
+        points.tofile(self.out_path / "velodyne" / raw_data_info.scene_id)
 
         gt_bboxes_3d = []
         gt_names = []

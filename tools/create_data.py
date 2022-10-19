@@ -199,7 +199,7 @@ def waymo_data_prep(root_path,
         num_worker=workers).create()
 
 
-def carla_data_prep(root_path, out_dir, workers):
+def carla_data_prep(root_path, out_dir, workers, fusion_type):
     """Prepare the info file for Carla dataset.
 
     Args:
@@ -212,20 +212,27 @@ def carla_data_prep(root_path, out_dir, workers):
 
     root_path, out_dir = Path(root_path), Path(out_dir)
 
-    raw_data_path = root_path / "raw_data"
-    data_infos = carla_utils.load_raw_data_infos(raw_data_path)
+    velodyne_path = out_dir / "velodyne"
+    if not velodyne_path.exists():
+        velodyne_path.mkdir(parents=True)
+
+    data_infos = carla_utils.load_raw_data_infos(root_path)
+
+    lidar_idxs = map(lambda x: int(x.strip()), fusion_type.split(","))
+    lidar_idxs = set(lidar_idxs)
 
     converter = carla.CarlaConverter(
         root_path, out_dir,
         raw_data_infos=data_infos,
         num_workers=workers,
+        lidar_idxs=lidar_idxs,
     )
     converter.convert()
 
     info_prefix = "carla"
     create_groundtruth_database(
         "CarlaDataset",
-        root_path,
+        out_dir,
         info_prefix,
         f'{out_dir}/{info_prefix}_infos_train.pkl',
         with_mask=False,
@@ -269,6 +276,9 @@ parser.add_argument(
 parser.add_argument('--extra-tag', type=str, default='kitti')
 parser.add_argument(
     '--workers', type=int, default=4, help='number of threads to be used')
+parser.add_argument(
+    "--fusion-type", type=str, default="0,1,2,3", help="fusion type for CarlaDataset"
+)
 args = parser.parse_args()
 
 if __name__ == '__main__':
@@ -350,4 +360,5 @@ if __name__ == '__main__':
             root_path=args.root_path,
             out_dir=args.out_dir,
             workers=args.workers,
+            fusion_type=args.fusion_type,
         )
