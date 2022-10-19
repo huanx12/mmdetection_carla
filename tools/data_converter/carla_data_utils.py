@@ -54,6 +54,7 @@ class VehicleInfo:
 
         bottom_center = center.copy()
         bottom_center[2] -= extent[2] / 2
+        bottom_center[1] = -bottom_center[1]
 
         return bottom_center.tolist() + extent.tolist() + [
             np.deg2rad(self.angle[1])

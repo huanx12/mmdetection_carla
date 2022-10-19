@@ -72,6 +72,7 @@ class CarlaConverter:
             )
 
         points = np.concatenate(points_list, axis=0)
+        points[:, 1] = -points[:, 1]
         points.tofile(self.out_path / "velodyne" / raw_data_info.scene_id)
 
         gt_bboxes_3d = []
