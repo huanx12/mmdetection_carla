@@ -438,6 +438,7 @@ class CarlaDataset(KittiDataset):
             box = gt_bboxes_3d.convert_to(Box3DMode.CAM).tensor.numpy()
 
             alpha = -np.arctan2(-box_lidar[:, 1], box_lidar[:, 0]) + box[:, 6]
+            alpha = -10
             dimensions = box[:, 3:6]
             location = box[:, :3]
             rotation_y = box[:, 6]
