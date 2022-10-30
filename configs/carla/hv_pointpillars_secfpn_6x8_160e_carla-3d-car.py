@@ -5,7 +5,7 @@ _base_ = [
     '../_base_/schedules/cyclic_40e.py', '../_base_/default_runtime.py'
 ]
 
-point_cloud_range = [-63.68, -59.2, -2, 40, 59.2, 4]
+point_cloud_range = [-101.84, -59.52, -0.1, 1.84, 59.52, 3.9]
 model = dict(
     bbox_head=dict(
         type="Anchor3DHead",
@@ -13,7 +13,7 @@ model = dict(
         anchor_generator=dict(
             _delete_=True,
             type="AlignedAnchor3DRangeGenerator",
-            ranges=[[-63.68, -59.2, -0.0345, 40, 59.2, -0.0345]],
+            ranges=[[-101.84, -59.52, 0.72, 1.84, 59.52, 0.72]],
             sizes=[[3.9, 1.6, 1.56]],
             rotations=[0, 1.57],
             reshape_out=True,
@@ -128,6 +128,8 @@ test_pipeline = [
 ]
 
 data = dict(
+    samples_per_gpu=6,
+    workers_per_gpu=4,
     train=dict(
         type="RepeatDataset",
         times=2,
@@ -136,3 +138,10 @@ data = dict(
     val=dict(pipeline=test_pipeline, classes=class_names),
     test=dict(pipeline=test_pipeline, classes=class_names),
 )
+
+# optimizer
+lr = 0.0001  # max learning rate
+optimizer = dict(lr=lr, betas=(0.95, 0.85))
+# runtime settings
+runner = dict(type='EpochBasedRunner', max_epochs=10)
+evaluation = dict(interval=1)

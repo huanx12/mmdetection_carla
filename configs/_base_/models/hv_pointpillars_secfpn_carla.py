@@ -1,12 +1,12 @@
-voxel_size = [0.24, 0.24, 6]
+voxel_size = [0.24, 0.24, 4]
 
 model = dict(
     type='VoxelNet',
     voxel_layer=dict(
         max_num_points=32,  # max_points_per_voxel
-        point_cloud_range=[-63.68, -59.2, -2, 40, 59.2, 4],
+        point_cloud_range=[-101.84, -59.52, -0.1, 1.84, 59.52, 3.9],
         voxel_size=voxel_size,
-        max_voxels=(32000, 40000)  # (training, testing) max_voxels
+        max_voxels=(16000, 40000)  # (training, testing) max_voxels
     ),
     voxel_encoder=dict(
         type='PillarFeatureNet',
@@ -14,7 +14,7 @@ model = dict(
         feat_channels=[64],
         with_distance=False,
         voxel_size=voxel_size,
-        point_cloud_range=[-63.68, -59.2, -2, 40, 59.2, 4]),
+        point_cloud_range=[-101.84, -59.52, -0.1, 1.84, 59.52, 3.9]),
     middle_encoder=dict(
         type='PointPillarsScatter', in_channels=64, output_shape=[496, 432]),
     backbone=dict(
@@ -38,15 +38,9 @@ model = dict(
         anchor_generator=dict(
             type='AlignedAnchor3DRangeGenerator',
             ranges=[
-                [-63.68, -59.2, 0, 40, 59.2, 0],
-                [-63.68, -59.2, -0.1188, 40, 59.2, -0.1188],
-                [-63.68, -59.2, -0.0345, 40, 59.2, -0.0345],
+                [-101.84, -59.52, 0.72, 1.84, 59.52, 0.72],
             ],
-            sizes=[
-                [0.8, 0.6, 1.73],
-                [1.76, 0.6, 1.73],
-                [3.9, 1.6, 1.56],
-            ],
+            sizes=[[3.9, 1.6, 1.56]],
             rotations=[0, 1.57],
             reshape_out=False),
         diff_rad_by_sin=True,
@@ -63,20 +57,6 @@ model = dict(
     # model training and testing settings
     train_cfg=dict(
         assigner=[
-            dict(  # for Pedestrian
-                type='MaxIoUAssigner',
-                iou_calculator=dict(type='BboxOverlapsNearest3D'),
-                pos_iou_thr=0.5,
-                neg_iou_thr=0.35,
-                min_pos_iou=0.35,
-                ignore_iof_thr=-1),
-            dict(  # for Cyclist
-                type='MaxIoUAssigner',
-                iou_calculator=dict(type='BboxOverlapsNearest3D'),
-                pos_iou_thr=0.5,
-                neg_iou_thr=0.35,
-                min_pos_iou=0.35,
-                ignore_iof_thr=-1),
             dict(  # for Car
                 type='MaxIoUAssigner',
                 iou_calculator=dict(type='BboxOverlapsNearest3D'),

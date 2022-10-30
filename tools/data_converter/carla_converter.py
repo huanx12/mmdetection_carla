@@ -36,6 +36,15 @@ class CarlaConverter:
             nproc=self.num_workers,
         )
 
+        points_range = np.stack([
+            data_info["points_range"]
+            for data_info in data_infos
+        ], axis=0)
+        points_min = points_range[:, :3].min(0)
+        points_max = points_range[:, 3:].max(0)
+
+        print("points_range: ", points_min, points_max)
+
         r = random.Random()
         r.seed(233)
         r.shuffle(data_infos)
@@ -68,12 +77,15 @@ class CarlaConverter:
             points = np.asarray(pc.points).astype(np.float32)
             colors = np.asarray(pc.colors).astype(np.float32)
             points_list.append(
-                np.concatenate([points, colors], axis=-1)
+                np.concatenate([points, colors[:, :1]], axis=-1)
             )
 
         points = np.concatenate(points_list, axis=0)
         points[:, 1] = -points[:, 1]
         points.tofile(self.out_path / "velodyne" / raw_data_info.scene_id)
+
+        points_min, points_max = points[:, :3].min(0), points[:, :3].max(0)
+        points_range = np.concatenate([points_min, points_max], axis=0)
 
         gt_bboxes_3d = []
         gt_names = []
@@ -92,6 +104,7 @@ class CarlaConverter:
                 "name": gt_names,
                 "difficulty": difficulty,
             },
+            "points_range": points_range,
         }
 
         return data_info

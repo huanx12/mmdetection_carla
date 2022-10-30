@@ -43,7 +43,7 @@ class LidarInfo:
 @dataclass
 class VehicleInfo:
     id: int
-    angle: List[float]      # pitch, yaw, roll
+    rotation: List[float]      # pitch, yaw, roll
     center: List[float]
     extent: List[float]
     location: List[float]
@@ -57,7 +57,7 @@ class VehicleInfo:
         bottom_center[1] = -bottom_center[1]
 
         return bottom_center.tolist() + extent.tolist() + [
-            np.deg2rad(self.angle[1])
+            np.deg2rad(self.rotation[1])
         ]
 
 
@@ -69,40 +69,57 @@ class DataInfo:
 
 
 def load_raw_data_infos(data_path: Path) -> List[DataInfo]:
+    scene_ids = set([
+        anno_path.name[:6]
+        for anno_path in data_path.glob("*.yaml")
+    ])
+
     data_infos = []
-    for anno_path in tqdm(data_path.glob("*.yaml")):
-        with open(anno_path, "r") as f:
-            anno = yaml.load(f, yaml.SafeLoader)
-
-        scene_id = anno_path.stem
-
+    for scene_id in tqdm(scene_ids):
         lidar_infos = []
-        vehicle_infos = []
-        for k, v in anno.items():
-            if k.startswith("lidar"):
-                pc_path = f"{scene_id}_{k.split('_')[0]}.pcd"
-                lidar_pose = Pose.from_list(v)
-                sensor_rot, sensor_trans = lidar_pose.get_transform()
+        vehicle_infos = {}
+        valid = True
 
-                lidar_infos.append(
-                    LidarInfo(
-                        index=int(k[len("lidar"):-len("_pose")]),
-                        sensor_rot=sensor_rot,
-                        sensor_trans=sensor_trans,
-                        pc_path=pc_path,
-                    )
+        for i in range(4):
+            anno_path = data_path / f"{scene_id}_lidar{i}.yaml"
+            if not anno_path.exists():
+                valid = False
+                break
+
+            with open(anno_path, "r") as f:
+                anno = yaml.load(f, yaml.SafeLoader)
+
+            lidar_pose = Pose.from_list(anno["lidar_pose"])
+            sensor_rot, sensor_trans = lidar_pose.get_transform()
+            pc_path = anno_path.stem + ".pcd"
+            if not (data_path / pc_path).exists():
+                valid = False
+                break
+
+            lidar_infos.append(
+                LidarInfo(
+                    index=i,
+                    sensor_rot=sensor_rot,
+                    sensor_trans=sensor_trans,
+                    pc_path=anno_path.stem + ".pcd",
                 )
-            elif k == "vehicles":
-                for v_id, info in v.items():
-                    vehicle_infos.append(
-                        VehicleInfo(
-                            id=v_id,
-                            angle=info["angle"],
-                            center=info["center"],
-                            extent=info["extent"],
-                            location=info["location"],
-                        )
-                    )
+            )
+
+            vehicle_infos.update({
+                v_id: VehicleInfo(
+                    id=v_id,
+                    rotation=info["rotation"],
+                    center=info["center"],
+                    extent=info["extent"],
+                    location=info["location"],
+                )
+                for v_id, info in anno["vehicles"].items()
+            })
+
+        if not valid:
+            continue
+
+        vehicle_infos = list(vehicle_infos.values())
 
         data_infos.append(
             DataInfo(

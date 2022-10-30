@@ -63,7 +63,7 @@ class CarlaDataset(KittiDataset):
         filter_empty_gt = True,
         test_mode = False,
         load_interval = 1,
-        pcd_limit_range = [-85, -85, -5, 85, 85, 5],
+        pcd_limit_range = [-102, -60, -0.1, 2, 60, 3.9],
         **kwargs
     ):
         assert box_type_3d == "LiDAR"
@@ -226,7 +226,7 @@ class CarlaDataset(KittiDataset):
                 "rotation_y": [],
                 "score": []
             }
-            if len(box_dict["bbox"]) > 0:
+            if len(box_dict["box3d_camera"]) > 0:
                 # box_2d_preds = box_dict["bbox"]
                 box_preds = box_dict["box3d_camera"]
                 scores = box_dict["scores"]
@@ -438,7 +438,7 @@ class CarlaDataset(KittiDataset):
             box = gt_bboxes_3d.convert_to(Box3DMode.CAM).tensor.numpy()
 
             alpha = -np.arctan2(-box_lidar[:, 1], box_lidar[:, 0]) + box[:, 6]
-            alpha = -10
+            alpha[:] = -10
             dimensions = box[:, 3:6]
             location = box[:, :3]
             rotation_y = box[:, 6]
@@ -459,7 +459,7 @@ class CarlaDataset(KittiDataset):
         if isinstance(result_files, dict):
             ap_dict = {}
             for name, result_files_ in result_files.items():
-                eval_types = ["bev", "3d"]
+                eval_types = ["3d"]
                 ap_result_str, ap_dict_ = kitti_eval(
                     gt_annos,
                     result_files_,
@@ -475,7 +475,7 @@ class CarlaDataset(KittiDataset):
 
         else:
             ap_result_str, ap_dict = kitti_eval(
-                gt_annos, result_files, self.CLASSES, eval_types=["bev", "3d"]
+                gt_annos, result_files, self.CLASSES, eval_types=["3d"]
             )
             mmcv.utils.print_log("\n" + ap_result_str, logger=logger)
 
