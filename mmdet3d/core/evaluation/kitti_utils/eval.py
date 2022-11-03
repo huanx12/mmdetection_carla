@@ -343,7 +343,6 @@ def fused_compute_statistics(overlaps,
 def calculate_iou_partly(gt_annos, dt_annos, metric, num_parts=50):
     """Fast iou algorithm. this function can be used independently to do result
     analysis. Must be used in CAMERA coordinate system.
-
     Args:
         gt_annos (dict): Must from get_label_annos() in kitti_common.py.
         dt_annos (dict): Must from get_label_annos() in kitti_common.py.
@@ -458,7 +457,6 @@ def eval_class(gt_annos,
                compute_aos=False,
                num_parts=200):
     """Kitti eval. support 2d/bev/3d/aos eval. support 0.5:0.05:0.95 coco AP.
-
     Args:
         gt_annos (dict): Must from get_label_annos() in kitti_common.py.
         dt_annos (dict): Must from get_label_annos() in kitti_common.py.
@@ -468,7 +466,6 @@ def eval_class(gt_annos,
         min_overlaps (float): Min overlap. format:
             [num_overlap, metric, class].
         num_parts (int): A parameter for fast calculate algorithm
-
     Returns:
         dict[str, np.ndarray]: recall, precision and aos
     """
@@ -599,6 +596,7 @@ def do_eval(gt_annos,
             min_overlaps,
             eval_types=['bbox', 'bev', '3d']):
     # min_overlaps: [num_minoverlap, metric, num_class]
+    # difficultys = [0, 1, 2]
     difficultys = [0, 1, 2]
     mAP11_bbox = None
     mAP11_aos = None
@@ -664,27 +662,34 @@ def kitti_eval(gt_annos,
                current_classes,
                eval_types=['bbox', 'bev', '3d']):
     """KITTI evaluation.
-
     Args:
         gt_annos (list[dict]): Contain gt information of each sample.
         dt_annos (list[dict]): Contain detected information of each sample.
         current_classes (list[str]): Classes to evaluation.
         eval_types (list[str], optional): Types to eval.
             Defaults to ['bbox', 'bev', '3d'].
-
     Returns:
         tuple: String and dict of evaluation results.
     """
     assert len(eval_types) > 0, 'must contain at least one evaluation type'
     if 'aos' in eval_types:
         assert 'bbox' in eval_types, 'must evaluate bbox when evaluating aos'
-    overlap_0_7 = np.array([[0.7, 0.5, 0.5, 0.7,
-                             0.5], [0.7, 0.5, 0.5, 0.7, 0.5],
-                            [0.7, 0.5, 0.5, 0.7, 0.5]])
-    overlap_0_5 = np.array([[0.7, 0.5, 0.5, 0.7, 0.5],
-                            [0.5, 0.25, 0.25, 0.5, 0.25],
-                            [0.5, 0.25, 0.25, 0.5, 0.25]])
-    min_overlaps = np.stack([overlap_0_7, overlap_0_5], axis=0)  # [2, 3, 5]
+    overlap_0_7 = np.array([
+        [0.7, 0.5, 0.5, 0.7, 0.5],
+        [0.7, 0.5, 0.5, 0.7, 0.5],
+        [0.7, 0.5, 0.5, 0.7, 0.5],
+    ])
+    overlap_0_5 = np.array([
+        [0.5, 0.5, 0.5, 0.7, 0.5],
+        [0.5, 0.25, 0.25, 0.5, 0.25],
+        [0.5, 0.25, 0.25, 0.5, 0.25],
+    ])
+    overlap_0_25 = np.array([
+        [0.25, 0.5, 0.5, 0.7, 0.5],
+        [0.25, 0.25, 0.25, 0.5, 0.25],
+        [0.25, 0.25, 0.25, 0.5, 0.25],
+    ])
+    min_overlaps = np.stack([overlap_0_7, overlap_0_5, overlap_0_25], axis=0)  # [2, 3, 5]
     class_to_name = {
         0: 'Car',
         1: 'Pedestrian',
@@ -735,39 +740,59 @@ def kitti_eval(gt_annos,
         # mAP threshold array: [num_minoverlap, metric, class]
         # mAP result: [num_class, num_diff, num_minoverlap]
         curcls_name = class_to_name[curcls]
+
+        result += ('{} AP11@{:.2f}, {:.2f}, {:.2f}:\n'.format(
+            curcls_name, 0.7, 0.5, 0.25))
+        if mAP11_3d is not None:
+            result += '3d   AP11:{:.4f}, {:.4f}, {:.4f}\n'.format(
+                *mAP11_3d[j, 0, :])
+
         for i in range(min_overlaps.shape[0]):
-            # prepare results for print
-            result += ('{} AP11@{:.2f}, {:.2f}, {:.2f}:\n'.format(
-                curcls_name, *min_overlaps[i, :, j]))
-            if mAP11_bbox is not None:
-                result += 'bbox AP11:{:.4f}, {:.4f}, {:.4f}\n'.format(
-                    *mAP11_bbox[j, :, i])
-            if mAP11_bev is not None:
-                result += 'bev  AP11:{:.4f}, {:.4f}, {:.4f}\n'.format(
-                    *mAP11_bev[j, :, i])
-            if mAP11_3d is not None:
-                result += '3d   AP11:{:.4f}, {:.4f}, {:.4f}\n'.format(
-                    *mAP11_3d[j, :, i])
-            if compute_aos:
-                result += 'aos  AP11:{:.2f}, {:.2f}, {:.2f}\n'.format(
-                    *mAP11_aos[j, :, i])
+            # # prepare results for print
+            # result += ('{} AP11@{:.2f}, {:.2f}, {:.2f}:\n'.format(
+            #     curcls_name, *min_overlaps[i, :, j]))
+            # if mAP11_bbox is not None:
+            #     result += 'bbox AP11:{:.4f}, {:.4f}, {:.4f}\n'.format(
+            #         *mAP11_bbox[j, :, i])
+            # if mAP11_bev is not None:
+            #     result += 'bev  AP11:{:.4f}, {:.4f}, {:.4f}\n'.format(
+            #         *mAP11_bev[j, :, i])
+            # if mAP11_3d is not None:
+            #     result += '3d   AP11:{:.4f}, {:.4f}, {:.4f}\n'.format(
+            #         *mAP11_3d[j, :, i])
+            # if compute_aos:
+            #     result += 'aos  AP11:{:.2f}, {:.2f}, {:.2f}\n'.format(
+            #         *mAP11_aos[j, :, i])
 
             # prepare results for logger
-            for idx in range(3):
-                if i == 0:
-                    postfix = f'{difficulty[idx]}_strict'
-                else:
-                    postfix = f'{difficulty[idx]}_loose'
-                prefix = f'KITTI/{curcls_name}'
-                if mAP11_3d is not None:
-                    ret_dict[f'{prefix}_3D_AP11_{postfix}'] =\
-                        mAP11_3d[j, idx, i]
-                if mAP11_bev is not None:
-                    ret_dict[f'{prefix}_BEV_AP11_{postfix}'] =\
-                        mAP11_bev[j, idx, i]
-                if mAP11_bbox is not None:
-                    ret_dict[f'{prefix}_2D_AP11_{postfix}'] =\
-                        mAP11_bbox[j, idx, i]
+
+            idx = 0
+            if i == 0:
+                postfix = f'{difficulty[idx]}_0.70'
+            elif i == 1:
+                postfix = f'{difficulty[idx]}_0.50'
+            else:
+                postfix = f'{difficulty[idx]}_0.25'
+            prefix = f'KITTI/{curcls_name}'
+            if mAP11_3d is not None:
+                ret_dict[f'{prefix}_3D_AP11_{postfix}'] =\
+                    mAP11_3d[j, idx, i]
+
+            # for idx in range(3):
+            #     if i == 0:
+            #         postfix = f'{difficulty[idx]}_strict'
+            #     else:
+            #         postfix = f'{difficulty[idx]}_loose'
+            #     prefix = f'KITTI/{curcls_name}'
+            #     if mAP11_3d is not None:
+            #         ret_dict[f'{prefix}_3D_AP11_{postfix}'] =\
+            #             mAP11_3d[j, idx, i]
+            #     if mAP11_bev is not None:
+            #         ret_dict[f'{prefix}_BEV_AP11_{postfix}'] =\
+            #             mAP11_bev[j, idx, i]
+            #     if mAP11_bbox is not None:
+            #         ret_dict[f'{prefix}_2D_AP11_{postfix}'] =\
+            #             mAP11_bbox[j, idx, i]
 
     # calculate mAP11 over all classes if there are multiple classes
     if len(current_classes) > 1:
@@ -808,39 +833,58 @@ def kitti_eval(gt_annos,
         # mAP threshold array: [num_minoverlap, metric, class]
         # mAP result: [num_class, num_diff, num_minoverlap]
         curcls_name = class_to_name[curcls]
+
+        result += ('{} AP40@{:.2f}, {:.2f}, {:.2f}:\n'.format(
+            curcls_name, 0.7, 0.5, 0.25))
+        if mAP40_3d is not None:
+            result += '3d   AP40:{:.4f}, {:.4f}, {:.4f}\n'.format(
+                *mAP40_3d[j, 0, :])
+
         for i in range(min_overlaps.shape[0]):
             # prepare results for print
-            result += ('{} AP40@{:.2f}, {:.2f}, {:.2f}:\n'.format(
-                curcls_name, *min_overlaps[i, :, j]))
-            if mAP40_bbox is not None:
-                result += 'bbox AP40:{:.4f}, {:.4f}, {:.4f}\n'.format(
-                    *mAP40_bbox[j, :, i])
-            if mAP40_bev is not None:
-                result += 'bev  AP40:{:.4f}, {:.4f}, {:.4f}\n'.format(
-                    *mAP40_bev[j, :, i])
-            if mAP40_3d is not None:
-                result += '3d   AP40:{:.4f}, {:.4f}, {:.4f}\n'.format(
-                    *mAP40_3d[j, :, i])
-            if compute_aos:
-                result += 'aos  AP40:{:.2f}, {:.2f}, {:.2f}\n'.format(
-                    *mAP40_aos[j, :, i])
+            # result += ('{} AP40@{:.2f}, {:.2f}, {:.2f}:\n'.format(
+            #     curcls_name, *min_overlaps[i, :, j]))
+            # if mAP40_bbox is not None:
+            #     result += 'bbox AP40:{:.4f}, {:.4f}, {:.4f}\n'.format(
+            #         *mAP40_bbox[j, :, i])
+            # if mAP40_bev is not None:
+            #     result += 'bev  AP40:{:.4f}, {:.4f}, {:.4f}\n'.format(
+            #         *mAP40_bev[j, :, i])
+            # if mAP40_3d is not None:
+            #     result += '3d   AP40:{:.4f}, {:.4f}, {:.4f}\n'.format(
+            #         *mAP40_3d[j, :, i])
+            # if compute_aos:
+            #     result += 'aos  AP40:{:.2f}, {:.2f}, {:.2f}\n'.format(
+            #         *mAP40_aos[j, :, i])
 
-            # prepare results for logger
-            for idx in range(3):
-                if i == 0:
-                    postfix = f'{difficulty[idx]}_strict'
-                else:
-                    postfix = f'{difficulty[idx]}_loose'
-                prefix = f'KITTI/{curcls_name}'
-                if mAP40_3d is not None:
-                    ret_dict[f'{prefix}_3D_AP40_{postfix}'] =\
-                        mAP40_3d[j, idx, i]
-                if mAP40_bev is not None:
-                    ret_dict[f'{prefix}_BEV_AP40_{postfix}'] =\
-                        mAP40_bev[j, idx, i]
-                if mAP40_bbox is not None:
-                    ret_dict[f'{prefix}_2D_AP40_{postfix}'] =\
-                        mAP40_bbox[j, idx, i]
+            idx = 0
+            if i == 0:
+                postfix = f'{difficulty[idx]}_0.70'
+            elif i == 1:
+                postfix = f'{difficulty[idx]}_0.50'
+            else:
+                postfix = f'{difficulty[idx]}_0.25'
+            prefix = f'KITTI/{curcls_name}'
+            if mAP40_3d is not None:
+                ret_dict[f'{prefix}_3D_AP40_{postfix}'] =\
+                    mAP40_3d[j, idx, i]
+
+            # # prepare results for logger
+            # for idx in range(3):
+            #     if i == 0:
+            #         postfix = f'{difficulty[idx]}_strict'
+            #     else:
+            #         postfix = f'{difficulty[idx]}_loose'
+            #     prefix = f'KITTI/{curcls_name}'
+            #     if mAP40_3d is not None:
+            #         ret_dict[f'{prefix}_3D_AP40_{postfix}'] =\
+            #             mAP40_3d[j, idx, i]
+            #     if mAP40_bev is not None:
+            #         ret_dict[f'{prefix}_BEV_AP40_{postfix}'] =\
+            #             mAP40_bev[j, idx, i]
+            #     if mAP40_bbox is not None:
+            #         ret_dict[f'{prefix}_2D_AP40_{postfix}'] =\
+            #             mAP40_bbox[j, idx, i]
 
     # calculate mAP40 over all classes if there are multiple classes
     if len(current_classes) > 1:
@@ -880,12 +924,10 @@ def kitti_eval(gt_annos,
 
 def kitti_eval_coco_style(gt_annos, dt_annos, current_classes):
     """coco style evaluation of kitti.
-
     Args:
         gt_annos (list[dict]): Contain gt information of each sample.
         dt_annos (list[dict]): Contain detected information of each sample.
         current_classes (list[str]): Classes to evaluation.
-
     Returns:
         string: Evaluation results.
     """

@@ -70,11 +70,12 @@ class DataInfo:
 
 def load_raw_data_infos(data_path: Path) -> List[DataInfo]:
     scene_ids = set([
-        anno_path.name[:6]
-        for anno_path in data_path.glob("*.yaml")
+        str(anno_path.name).split('_')[0]
+        for anno_path in data_path.glob("*.yaml")             
     ])
 
     data_infos = []
+    
     for scene_id in tqdm(scene_ids):
         lidar_infos = []
         vehicle_infos = {}
@@ -83,8 +84,8 @@ def load_raw_data_infos(data_path: Path) -> List[DataInfo]:
         for i in range(4):
             anno_path = data_path / f"{scene_id}_lidar{i}.yaml"
             if not anno_path.exists():
-                valid = False
-                break
+                continue
+ 
 
             with open(anno_path, "r") as f:
                 anno = yaml.load(f, yaml.SafeLoader)

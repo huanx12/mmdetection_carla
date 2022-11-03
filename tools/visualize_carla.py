@@ -11,17 +11,16 @@ def main():
     parser.add_argument("--id", type=int, default=0, required=False)
     args = parser.parse_args()
 
-    with open("data/carla/carla_infos_train.pkl", "rb") as f:
+    with open("data/carla_bench/c16h35_bench/carla_infos_train.pkl", "rb") as f:
         data_infos = pickle.load(f)
 
     data_info = data_infos[args.id]
 
     scene_id = data_info["scene_id"]
 
-    points = np.fromfile(f"data/carla/velodyne/{scene_id}", dtype=np.float32)
-    points = points.reshape(-1, 6)
-    points[:, 1] = -points[:, 1]
-
+    points = np.fromfile(f"data/carla_bench/c16h35_bench/velodyne/{scene_id}", dtype=np.float32)
+    points = points.reshape(-1, 4)
+    
     pc = o3d.geometry.PointCloud()
     pc.points = o3d.utility.Vector3dVector(points[:, :3])
 

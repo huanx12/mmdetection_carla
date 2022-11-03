@@ -1,7 +1,7 @@
 # model settings
 _base_ = [
     '../_base_/models/hv_pointpillars_secfpn_carla.py',
-    '../_base_/datasets/carla-3d-car.py',
+    '../_base_/datasets/carla-3d-car-bench2.py',
     '../_base_/schedules/cyclic_40e.py', '../_base_/default_runtime.py'
 ]
 
@@ -27,7 +27,7 @@ model = dict(
             iou_calculator=dict(type="BboxOverlapsNearest3D"),
             pos_iou_thr=0.6,
             neg_iou_thr=0.45,
-            min_pos_iou=0.45,
+            min_pos_iou=0.45, 
             ignore_iof_thr=-1,
         ),
         allowed_border=0,
@@ -38,11 +38,11 @@ model = dict(
 
 # dataset settings
 dataset_type = "CarlaDataset"
-data_root = "data/carla/"
+data_root = "data/carla_bench/c16h54_bench"
 class_names = ["Car"]
 db_sampler = dict(
     data_root=data_root,
-    info_path=data_root + "carla_dbinfos_train.pkl",
+    info_path=data_root + "/carla_dbinfos_train.pkl",
     rate=1.0,
     prepare=dict(filter_by_difficulty=[-1], filter_by_min_points=dict(Car=5)),
     sample_groups=dict(Car=15),
@@ -140,8 +140,8 @@ data = dict(
 )
 
 # optimizer
-lr = 0.002  # max learning rate
+lr = 0.01  # max learning rate
 optimizer = dict(lr=lr, betas=(0.95, 0.85))
 # runtime settings
-runner = dict(type='EpochBasedRunner', max_epochs=300)
+runner = dict(type='EpochBasedRunner', max_epochs=150)
 evaluation = dict(interval=1)
