@@ -6,7 +6,7 @@ model = dict(
         max_num_points=32,  # max_points_per_voxel
         point_cloud_range=[-101.84, -59.52, -0.1, 1.84, 59.52, 3.9],
         voxel_size=voxel_size,
-        max_voxels=(16000, 40000)  # (training, testing) max_voxels
+        max_voxels=(32000, 80000)  # (training, testing) max_voxels
     ),
     voxel_encoder=dict(
         type='PillarFeatureNet',
